@@ -4,32 +4,53 @@
 /node_modules
 /.pnp
 .pnp.js
+.pnp.loader.mjs
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # testing
 /coverage
 /playwright-report
 /test-results
+/.nyc_output
+/cypress/videos
+/cypress/screenshots
 
 # next.js
 /.next/
 /out/
+.next
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # local env files
 .env*.local
 .env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
 .env.production
+.env.production.local
 
 # vercel
 .vercel
@@ -44,3 +65,68 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+.stylelintcache
+*.cache
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Storybook
+/storybook-static
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Sentry
+.sentryclirc
+
+# Turbo
+.turbo
+
+# PWA files
+**/public/sw.js
+**/public/workbox-*.js
+**/public/worker-*.js
+**/public/sw.js.map
+**/public/workbox-*.js.map
+**/public/worker-*.js.map
