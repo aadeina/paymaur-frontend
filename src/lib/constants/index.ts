@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
   TRANSACTION_DETAILS: '/transactions/',
   TRANSACTION_STATS: '/transactions/stats/',
   TRANSACTION_RECENT: '/transactions/recent/',
+  TRANSACTION_ANALYTICS: '/transactions/analytics/',
 
   // Fees
   FEE_RULES: '/fees/rules/',

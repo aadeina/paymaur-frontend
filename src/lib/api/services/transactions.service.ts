@@ -39,4 +39,18 @@ export const transactionsService = {
     // Backend doesn't have export endpoint - would need to generate client-side
     throw new Error('Transaction export not implemented on backend')
   },
+
+  /**
+   * Get transaction analytics for dashboard
+   */
+  async getAnalytics(): Promise<{
+    total_sent: { amount: string; change_percent: number; trend: string };
+    total_received: { amount: string; change_percent: number; trend: string };
+    bills_paid: { amount: string; change_percent: number; trend: string };
+    transactions: { count: number; change_percent: number; trend: string };
+    period: { current_month: string; previous_month: string };
+  }> {
+    const response = await apiClient.get(API_ENDPOINTS.TRANSACTION_ANALYTICS)
+    return response.data
+  },
 }
