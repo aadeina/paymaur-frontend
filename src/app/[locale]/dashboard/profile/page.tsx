@@ -16,7 +16,9 @@ export default function ProfilePage() {
 
   if (!user) return null
 
-  const userInitials = `${user.firstName[0]}${user.lastName[0]}`
+  const firstInitial = user.firstName ? user.firstName[0] : ''
+  const lastInitial = user.lastName ? user.lastName[0] : ''
+  const userInitials = (firstInitial + lastInitial) || (user.username ? user.username[0].toUpperCase() : 'U')
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -86,7 +88,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Member Since</p>
-                    <p className="font-medium">{formatDate(user.createdAt)}</p>
+                    <p className="font-medium">{user.createdAt ? formatDate(user.createdAt) : 'N/A'}</p>
                   </div>
                 </div>
               </div>
