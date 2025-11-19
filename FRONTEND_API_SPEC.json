@@ -1,0 +1,1339 @@
+{
+  "api_metadata": {
+    "name": "PayMaur API",
+    "version": "1.0.0",
+    "base_url": "http://localhost:8000/api/v1",
+    "description": "Complete API specification for PayMaur fintech platform - Wallet, Transfers, Bill Payments, and more",
+    "authentication": {
+      "type": "JWT Bearer Token",
+      "header": "Authorization: Bearer {access_token}",
+      "token_endpoints": {
+        "login": "/auth/login/",
+        "refresh": "/auth/token/refresh/",
+        "logout": "/auth/logout/"
+      },
+      "token_lifetime": {
+        "access": "60 minutes",
+        "refresh": "7 days"
+      }
+    }
+  },
+
+  "endpoints": [
+    {
+      "id": "auth_register",
+      "endpoint": "/auth/register/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Register a new user account",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "validation": {
+            "pattern": "^[234]\\d{7}$",
+            "minLength": 8,
+            "maxLength": 8,
+            "customRule": "Must be 8 digits starting with 2, 3, or 4"
+          },
+          "placeholder": "36600100",
+          "helpText": "Enter your Mauritanian phone number (8 digits)",
+          "errorMessages": {
+            "required": "Phone number is required",
+            "pattern": "Phone must be 8 digits starting with 2, 3, or 4",
+            "unique": "This phone number is already registered"
+          }
+        },
+        {
+          "name": "username",
+          "label": "Username",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "maxLength": 30,
+            "unique": true
+          },
+          "placeholder": "john_doe",
+          "helpText": "Choose a unique username",
+          "errorMessages": {
+            "required": "Username is required",
+            "maxLength": "Username cannot exceed 30 characters",
+            "unique": "This username is already taken"
+          }
+        },
+        {
+          "name": "pin",
+          "label": "4-Digit PIN",
+          "type": "password",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "minLength": 4,
+            "maxLength": 4,
+            "pattern": "^\\d{4}$"
+          },
+          "placeholder": "••••",
+          "helpText": "Create a 4-digit PIN for secure login",
+          "errorMessages": {
+            "required": "PIN is required",
+            "pattern": "PIN must be exactly 4 digits",
+            "minLength": "PIN must be 4 digits",
+            "maxLength": "PIN must be 4 digits"
+          },
+          "security": "Stored as Argon2 hash, never in plain text"
+        }
+      ],
+      "response": {
+        "success_code": 201,
+        "success_response": {
+          "success": true,
+          "message": "User registered. OTP sent for verification."
+        },
+        "next_step": "Verify OTP at /auth/verify-otp/"
+      }
+    },
+
+    {
+      "id": "auth_verify_otp",
+      "endpoint": "/auth/verify-otp/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Verify OTP code sent during registration or PIN reset",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "validation": {
+            "pattern": "^[234]\\d{7}$"
+          },
+          "placeholder": "36600100"
+        },
+        {
+          "name": "code",
+          "label": "OTP Code",
+          "type": "text",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 6,
+            "pattern": "^\\d{6}$"
+          },
+          "placeholder": "123456",
+          "helpText": "Enter the 6-digit code sent to your phone",
+          "autoComplete": "one-time-code"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "OTP verified successfully"
+        },
+        "next_step": "User is verified and can login"
+      }
+    },
+
+    {
+      "id": "auth_login",
+      "endpoint": "/auth/login/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Login with phone number and PIN",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "validation": {
+            "pattern": "^[234]\\d{7}$"
+          },
+          "placeholder": "36600100",
+          "autoComplete": "tel"
+        },
+        {
+          "name": "pin",
+          "label": "PIN",
+          "type": "password",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 4
+          },
+          "placeholder": "••••",
+          "autoComplete": "current-password"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "Login successful",
+          "data": {
+            "access": "jwt_access_token",
+            "refresh": "jwt_refresh_token",
+            "user": {
+              "id": "uuid",
+              "username": "string",
+              "phone": "string",
+              "is_verified": true
+            }
+          }
+        },
+        "storage": {
+          "access_token": "localStorage",
+          "refresh_token": "localStorage",
+          "user_data": "localStorage"
+        }
+      }
+    },
+
+    {
+      "id": "auth_logout",
+      "endpoint": "/auth/logout/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Logout and blacklist refresh token",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "refresh",
+          "label": "Refresh Token",
+          "type": "hidden",
+          "required": true,
+          "source": "localStorage",
+          "helpText": "Automatically populated from stored refresh token"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "Logged out successfully"
+        },
+        "cleanup": "Clear all tokens and user data from localStorage"
+      }
+    },
+
+    {
+      "id": "auth_token_refresh",
+      "endpoint": "/auth/token/refresh/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Refresh access token using refresh token",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "refresh",
+          "label": "Refresh Token",
+          "type": "hidden",
+          "required": true,
+          "source": "localStorage"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "access": "new_jwt_access_token"
+        },
+        "storage": {
+          "access_token": "Update in localStorage"
+        }
+      }
+    },
+
+    {
+      "id": "auth_change_pin",
+      "endpoint": "/auth/pin/change/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Change user PIN (must be logged in)",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "old_pin",
+          "label": "Current PIN",
+          "type": "password",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 4,
+            "pattern": "^\\d{4}$"
+          },
+          "placeholder": "••••"
+        },
+        {
+          "name": "new_pin",
+          "label": "New PIN",
+          "type": "password",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 4,
+            "pattern": "^\\d{4}$"
+          },
+          "placeholder": "••••",
+          "helpText": "Create a new 4-digit PIN"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "PIN changed successfully"
+        }
+      }
+    },
+
+    {
+      "id": "auth_forgot_pin_start",
+      "endpoint": "/auth/pin/forgot/start/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Start PIN reset process - sends OTP",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "validation": {
+            "pattern": "^[234]\\d{7}$"
+          },
+          "placeholder": "36600100"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "OTP sent for PIN reset"
+        },
+        "next_step": "Verify OTP at /auth/pin/forgot/verify/"
+      }
+    },
+
+    {
+      "id": "auth_forgot_pin_verify",
+      "endpoint": "/auth/pin/forgot/verify/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Verify OTP for PIN reset",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "placeholder": "36600100"
+        },
+        {
+          "name": "code",
+          "label": "OTP Code",
+          "type": "text",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 6
+          },
+          "placeholder": "123456"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "next_step": "Set new PIN at /auth/pin/reset/"
+      }
+    },
+
+    {
+      "id": "auth_reset_pin",
+      "endpoint": "/auth/pin/reset/",
+      "method": "POST",
+      "authentication_required": false,
+      "description": "Complete PIN reset with new PIN",
+      "category": "Authentication",
+      "fields": [
+        {
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "tel",
+          "required": true,
+          "placeholder": "36600100"
+        },
+        {
+          "name": "new_pin",
+          "label": "New PIN",
+          "type": "password",
+          "inputMode": "numeric",
+          "required": true,
+          "validation": {
+            "length": 4,
+            "pattern": "^\\d{4}$"
+          },
+          "placeholder": "••••"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "success": true,
+          "message": "PIN reset successfully"
+        },
+        "next_step": "Login with new PIN"
+      }
+    },
+
+    {
+      "id": "users_profile",
+      "endpoint": "/users/profile/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get current user's profile information",
+      "category": "User Management",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "id": "uuid",
+          "username": "string",
+          "phone": "string",
+          "role": "CUSTOMER",
+          "is_verified": true,
+          "is_active": true,
+          "date_joined": "datetime",
+          "wallet_balance": "0.00"
+        }
+      }
+    },
+
+    {
+      "id": "users_update_profile",
+      "endpoint": "/users/profile/update/",
+      "method": "PUT",
+      "authentication_required": true,
+      "description": "Update user profile",
+      "category": "User Management",
+      "fields": [
+        {
+          "name": "username",
+          "label": "Username",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "maxLength": 30
+          },
+          "placeholder": "new_username",
+          "helpText": "Username must be unique"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "username": "updated_username"
+        }
+      }
+    },
+
+    {
+      "id": "users_search",
+      "endpoint": "/users/search/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Search users by username or phone",
+      "category": "User Management",
+      "queryParams": [
+        {
+          "name": "q",
+          "label": "Search Query",
+          "type": "text",
+          "required": true,
+          "placeholder": "Search by username or phone",
+          "helpText": "Partial match on username or phone number"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "username": "string",
+            "phone": "string",
+            "role": "CUSTOMER",
+            "is_verified": true
+          }
+        ],
+        "limit": "Returns maximum 10 results"
+      }
+    },
+
+    {
+      "id": "users_by_username",
+      "endpoint": "/users/username/{username}/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get user details by username",
+      "category": "User Management",
+      "pathParams": [
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "id": "uuid",
+          "username": "string",
+          "phone": "string",
+          "role": "CUSTOMER",
+          "is_verified": true
+        }
+      }
+    },
+
+    {
+      "id": "wallet_get",
+      "endpoint": "/wallet/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get wallet details with balance",
+      "category": "Wallet",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "id": "uuid",
+          "user_info": {
+            "id": "uuid",
+            "username": "string",
+            "phone": "string"
+          },
+          "balance": "0.00",
+          "is_locked": false,
+          "last_updated": "datetime"
+        }
+      }
+    },
+
+    {
+      "id": "wallet_balance",
+      "endpoint": "/wallet/balance/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get wallet balance only",
+      "category": "Wallet",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "balance": "0.00",
+          "is_locked": false,
+          "last_updated": "datetime"
+        }
+      }
+    },
+
+    {
+      "id": "wallet_lock",
+      "endpoint": "/wallet/lock/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Lock wallet to prevent transactions",
+      "category": "Wallet",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "detail": "Wallet locked successfully.",
+          "is_locked": true
+        }
+      }
+    },
+
+    {
+      "id": "wallet_unlock",
+      "endpoint": "/wallet/unlock/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Unlock wallet to resume transactions",
+      "category": "Wallet",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "detail": "Wallet unlocked successfully.",
+          "is_locked": false
+        }
+      }
+    },
+
+    {
+      "id": "transactions_list",
+      "endpoint": "/transactions/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get list of all transactions",
+      "category": "Transactions",
+      "queryParams": [
+        {
+          "name": "type",
+          "label": "Transaction Type",
+          "type": "select",
+          "required": false,
+          "options": [
+            { "value": "TOPUP", "label": "Top Up" },
+            { "value": "TRANSFER", "label": "Transfer" },
+            { "value": "WITHDRAW", "label": "Withdraw" },
+            { "value": "BILLPAY", "label": "Bill Payment" }
+          ]
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "type": "select",
+          "required": false,
+          "options": [
+            { "value": "PENDING", "label": "Pending" },
+            { "value": "SUCCESS", "label": "Success" },
+            { "value": "FAILED", "label": "Failed" }
+          ]
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "type": "TRANSFER",
+            "amount": "100.00",
+            "status": "SUCCESS",
+            "reference": "XFER-123456",
+            "created_at": "datetime"
+          }
+        ]
+      }
+    },
+
+    {
+      "id": "transactions_detail",
+      "endpoint": "/transactions/{id}/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get transaction details",
+      "category": "Transactions",
+      "pathParams": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "id": "uuid",
+          "wallet": "uuid",
+          "wallet_owner": {
+            "username": "string",
+            "phone": "string"
+          },
+          "type": "TRANSFER",
+          "amount": "100.00",
+          "balance_after": "900.00",
+          "status": "SUCCESS",
+          "reference": "XFER-123456",
+          "metadata": {},
+          "created_at": "datetime"
+        }
+      }
+    },
+
+    {
+      "id": "transactions_stats",
+      "endpoint": "/transactions/stats/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get transaction statistics",
+      "category": "Transactions",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "total_transactions": 100,
+          "total_spent": "5000.00",
+          "total_received": "3000.00",
+          "pending_count": 2,
+          "success_count": 95,
+          "failed_count": 3
+        }
+      }
+    },
+
+    {
+      "id": "transactions_recent",
+      "endpoint": "/transactions/recent/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get 10 most recent transactions",
+      "category": "Transactions",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "limit": "Returns 10 most recent transactions"
+      }
+    },
+
+    {
+      "id": "transfers_send",
+      "endpoint": "/transfers/send/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Send money to another user",
+      "category": "Transfers",
+      "fields": [
+        {
+          "name": "recipient_username",
+          "label": "Recipient Username",
+          "type": "text",
+          "required": false,
+          "validation": {
+            "conditionallyRequired": "Either recipient_username OR recipient_phone must be provided"
+          },
+          "placeholder": "jane_doe",
+          "helpText": "Enter username OR phone number of recipient"
+        },
+        {
+          "name": "recipient_phone",
+          "label": "Recipient Phone",
+          "type": "tel",
+          "required": false,
+          "validation": {
+            "pattern": "^[234]\\d{7}$",
+            "conditionallyRequired": "Either recipient_username OR recipient_phone must be provided"
+          },
+          "placeholder": "36600200",
+          "helpText": "Enter phone OR username of recipient"
+        },
+        {
+          "name": "amount",
+          "label": "Amount (MRU)",
+          "type": "number",
+          "inputMode": "decimal",
+          "required": true,
+          "validation": {
+            "min": 1,
+            "max": 999999999999,
+            "decimalPlaces": 2,
+            "step": 0.01
+          },
+          "placeholder": "100.00",
+          "helpText": "Transfer amount (fee will be calculated automatically)"
+        },
+        {
+          "name": "note",
+          "label": "Note (Optional)",
+          "type": "text",
+          "required": false,
+          "validation": {
+            "maxLength": 255
+          },
+          "placeholder": "Payment for lunch",
+          "helpText": "Add an optional note to the transfer"
+        }
+      ],
+      "validation_rules": {
+        "custom": [
+          "Cannot send money to yourself",
+          "Must provide either recipient_username OR recipient_phone (not both)",
+          "Sender must have sufficient balance (amount + fee)",
+          "Both wallets must be unlocked"
+        ]
+      },
+      "response": {
+        "success_code": 201,
+        "success_response": {
+          "detail": "Transfer successful",
+          "transfer": {
+            "id": "uuid",
+            "sender_wallet": "uuid",
+            "receiver_wallet": "uuid",
+            "sender_info": {
+              "username": "string",
+              "phone": "string"
+            },
+            "receiver_info": {
+              "username": "string",
+              "phone": "string"
+            },
+            "amount": "100.00",
+            "note": "string",
+            "status": "SUCCESS",
+            "reference": "XFER-timestamp-unique",
+            "created_at": "datetime"
+          },
+          "fee_charged": "2.00",
+          "total_deducted": "102.00"
+        }
+      }
+    },
+
+    {
+      "id": "transfers_list",
+      "endpoint": "/transfers/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get all transfers (sent and received)",
+      "category": "Transfers",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "sender_username": "string",
+            "receiver_username": "string",
+            "amount": "100.00",
+            "note": "string",
+            "status": "SUCCESS",
+            "reference": "XFER-123456",
+            "created_at": "datetime"
+          }
+        ]
+      }
+    },
+
+    {
+      "id": "transfers_sent",
+      "endpoint": "/transfers/sent/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get sent transfers only",
+      "category": "Transfers",
+      "fields": [],
+      "response": {
+        "success_code": 200
+      }
+    },
+
+    {
+      "id": "transfers_received",
+      "endpoint": "/transfers/received/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get received transfers only",
+      "category": "Transfers",
+      "fields": [],
+      "response": {
+        "success_code": 200
+      }
+    },
+
+    {
+      "id": "transfers_detail",
+      "endpoint": "/transfers/{id}/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get transfer details",
+      "category": "Transfers",
+      "pathParams": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "id": "uuid",
+          "sender_wallet": "uuid",
+          "receiver_wallet": "uuid",
+          "sender_info": {
+            "username": "string",
+            "phone": "string"
+          },
+          "receiver_info": {
+            "username": "string",
+            "phone": "string"
+          },
+          "amount": "100.00",
+          "note": "string",
+          "status": "SUCCESS",
+          "reference": "XFER-123456",
+          "created_at": "datetime"
+        }
+      }
+    },
+
+    {
+      "id": "transfers_stats",
+      "endpoint": "/transfers/stats/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get transfer statistics",
+      "category": "Transfers",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "total_sent": "5000.00",
+          "total_received": "3000.00",
+          "sent_count": 50,
+          "received_count": 30,
+          "total_transfers": 80
+        }
+      }
+    },
+
+    {
+      "id": "bills_pay",
+      "endpoint": "/bills/pay/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Pay utility bill",
+      "category": "Bill Payments",
+      "fields": [
+        {
+          "name": "category",
+          "label": "Bill Category",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "ELECTRICITY", "label": "Electricity" },
+            { "value": "WATER", "label": "Water" },
+            { "value": "INTERNET", "label": "Internet" },
+            { "value": "TV", "label": "TV/Cable" },
+            { "value": "OTHER", "label": "Other" }
+          ],
+          "helpText": "Select the type of bill you're paying"
+        },
+        {
+          "name": "provider_name",
+          "label": "Provider Name",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "maxLength": 100,
+            "trim": true,
+            "notEmpty": true
+          },
+          "placeholder": "SOMELEC",
+          "helpText": "Enter the utility provider name (e.g., SOMELEC, Mauritel)",
+          "examples": {
+            "ELECTRICITY": ["SOMELEC"],
+            "WATER": ["SNDE"],
+            "INTERNET": ["Mauritel", "Mattel", "Chinguitel"],
+            "TV": ["Canal+"]
+          }
+        },
+        {
+          "name": "account_number",
+          "label": "Account Number",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "maxLength": 30,
+            "trim": true,
+            "notEmpty": true
+          },
+          "placeholder": "123456789",
+          "helpText": "Enter your account number with the provider"
+        },
+        {
+          "name": "customer_name",
+          "label": "Customer Name",
+          "type": "text",
+          "required": true,
+          "validation": {
+            "maxLength": 100,
+            "trim": true,
+            "notEmpty": true
+          },
+          "placeholder": "John Doe",
+          "helpText": "Enter the name on the bill/account"
+        },
+        {
+          "name": "amount",
+          "label": "Amount (MRU)",
+          "type": "number",
+          "inputMode": "decimal",
+          "required": true,
+          "validation": {
+            "min": 1,
+            "max": 100000,
+            "decimalPlaces": 2,
+            "step": 0.01
+          },
+          "placeholder": "500.00",
+          "helpText": "Bill amount in MRU (1 - 100,000)"
+        },
+        {
+          "name": "idempotency_key",
+          "label": "Idempotency Key",
+          "type": "hidden",
+          "required": false,
+          "validation": {
+            "maxLength": 64,
+            "unique": true
+          },
+          "helpText": "Auto-generated to prevent duplicate payments",
+          "autoGenerate": true
+        }
+      ],
+      "validation_rules": {
+        "custom": [
+          "Wallet must not be locked",
+          "Sufficient balance required",
+          "Idempotency key must be unique (prevents duplicates)"
+        ]
+      },
+      "response": {
+        "success_code": 201,
+        "success_response": {
+          "detail": "Bill payment successful",
+          "bill_payment": {
+            "id": "uuid",
+            "wallet": "uuid",
+            "user_info": {
+              "username": "string",
+              "phone": "string"
+            },
+            "category": "ELECTRICITY",
+            "provider_name": "SOMELEC",
+            "account_number": "123456",
+            "customer_name": "John Doe",
+            "amount": "500.00",
+            "status": "SUCCESS",
+            "reference": "BILL-ABC123",
+            "idempotency_key": "unique-key",
+            "metadata": {},
+            "created_at": "datetime",
+            "completed_at": "datetime"
+          }
+        },
+        "duplicate_response": {
+          "code": 200,
+          "detail": "Duplicate bill payment detected.",
+          "bill_payment": "existing_payment_details"
+        }
+      }
+    },
+
+    {
+      "id": "bills_list",
+      "endpoint": "/bills/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get bill payment history",
+      "category": "Bill Payments",
+      "queryParams": [
+        {
+          "name": "category",
+          "label": "Category",
+          "type": "select",
+          "required": false,
+          "options": [
+            { "value": "ELECTRICITY", "label": "Electricity" },
+            { "value": "WATER", "label": "Water" },
+            { "value": "INTERNET", "label": "Internet" },
+            { "value": "TV", "label": "TV/Cable" },
+            { "value": "OTHER", "label": "Other" }
+          ]
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "type": "select",
+          "required": false,
+          "options": [
+            { "value": "PENDING", "label": "Pending" },
+            { "value": "SUCCESS", "label": "Success" },
+            { "value": "FAILED", "label": "Failed" }
+          ]
+        },
+        {
+          "name": "provider",
+          "label": "Provider",
+          "type": "text",
+          "required": false,
+          "helpText": "Partial match on provider name"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "category": "ELECTRICITY",
+            "provider_name": "SOMELEC",
+            "account_number": "123456",
+            "amount": "500.00",
+            "status": "SUCCESS",
+            "reference": "BILL-ABC123",
+            "created_at": "datetime"
+          }
+        ]
+      }
+    },
+
+    {
+      "id": "bills_detail",
+      "endpoint": "/bills/{id}/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get bill payment details",
+      "category": "Bill Payments",
+      "pathParams": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "required": true
+        }
+      ],
+      "response": {
+        "success_code": 200
+      }
+    },
+
+    {
+      "id": "bills_stats",
+      "endpoint": "/bills/stats/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get bill payment statistics",
+      "category": "Bill Payments",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "total_bills": 100,
+          "total_amount": "50000.00",
+          "successful_count": 95,
+          "pending_count": 3,
+          "failed_count": 2,
+          "by_category": {
+            "ELECTRICITY": {
+              "count": 50,
+              "total": "30000.00"
+            }
+          },
+          "by_provider": {
+            "SOMELEC": {
+              "count": 50,
+              "total": "30000.00"
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "id": "bills_recent",
+      "endpoint": "/bills/recent/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get 10 most recent bill payments",
+      "category": "Bill Payments",
+      "fields": [],
+      "response": {
+        "success_code": 200
+      }
+    },
+
+    {
+      "id": "fees_rules",
+      "endpoint": "/fees/rules/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get all active fee rules",
+      "category": "Fees",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "operation": "TRANSFER",
+            "rate_percent": "1.500",
+            "fixed_fee": "5.00",
+            "min_fee": "2.00",
+            "max_fee": "100.00",
+            "updated_at": "datetime"
+          }
+        ],
+        "fee_calculation_formula": "fee = (amount × rate_percent / 100) + fixed_fee, subject to min/max constraints"
+      }
+    },
+
+    {
+      "id": "fees_calculate",
+      "endpoint": "/fees/calculate/",
+      "method": "POST",
+      "authentication_required": true,
+      "description": "Calculate fee for an operation",
+      "category": "Fees",
+      "fields": [
+        {
+          "name": "operation",
+          "label": "Operation Type",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "TRANSFER", "label": "Transfer" },
+            { "value": "BILLPAY", "label": "Bill Payment" },
+            { "value": "CASHIN", "label": "Cash In" },
+            { "value": "CASHOUT", "label": "Cash Out" }
+          ],
+          "helpText": "Select the type of operation"
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "number",
+          "inputMode": "decimal",
+          "required": true,
+          "validation": {
+            "min": 0.01,
+            "decimalPlaces": 2
+          },
+          "placeholder": "100.00",
+          "helpText": "Enter amount to calculate fee"
+        }
+      ],
+      "response": {
+        "success_code": 200,
+        "success_response": {
+          "operation": "TRANSFER",
+          "amount": "100.00",
+          "fee": "6.50",
+          "total": "106.50",
+          "has_fee": true
+        },
+        "use_case": "Show fee preview to user before confirming transaction"
+      }
+    },
+
+    {
+      "id": "fees_my_fees",
+      "endpoint": "/fees/my-fees/",
+      "method": "GET",
+      "authentication_required": true,
+      "description": "Get my fee transaction history",
+      "category": "Fees",
+      "fields": [],
+      "response": {
+        "success_code": 200,
+        "success_response": [
+          {
+            "id": "uuid",
+            "amount": "6.50",
+            "operation": "TRANSFER",
+            "reference": "FEE-XFER-123456",
+            "created_at": "datetime",
+            "metadata": {}
+          }
+        ]
+      }
+    }
+  ],
+
+  "common_validation_patterns": {
+    "phone": {
+      "pattern": "^[234]\\d{7}$",
+      "description": "Mauritanian phone number: 8 digits starting with 2, 3, or 4",
+      "examples": ["36600100", "22334455", "44556677"]
+    },
+    "pin": {
+      "pattern": "^\\d{4}$",
+      "description": "4-digit PIN",
+      "security": "Always stored as Argon2 hash"
+    },
+    "otp": {
+      "pattern": "^\\d{6}$",
+      "description": "6-digit OTP code",
+      "expiry": "5 minutes"
+    },
+    "amount": {
+      "min": 1,
+      "max": 999999999999,
+      "decimalPlaces": 2,
+      "description": "Monetary amount in MRU"
+    },
+    "username": {
+      "maxLength": 30,
+      "unique": true,
+      "description": "Unique username identifier"
+    }
+  },
+
+  "error_handling": {
+    "standard_error_format": {
+      "detail": "Error message string"
+    },
+    "validation_error_format": {
+      "field_name": ["Error message 1", "Error message 2"]
+    },
+    "http_status_codes": {
+      "200": "Success",
+      "201": "Created",
+      "400": "Bad Request (validation errors)",
+      "401": "Unauthorized (invalid/missing token)",
+      "403": "Forbidden (insufficient permissions)",
+      "404": "Not Found",
+      "500": "Internal Server Error"
+    }
+  },
+
+  "frontend_implementation_notes": {
+    "authentication_flow": [
+      "1. Register → Verify OTP → Login",
+      "2. Store access_token and refresh_token in localStorage",
+      "3. Include Authorization: Bearer {access_token} header in all protected requests",
+      "4. Automatically refresh token when it expires (60 min lifetime)",
+      "5. Clear all tokens on logout"
+    ],
+    "transfer_flow": [
+      "1. Search/select recipient",
+      "2. Enter amount",
+      "3. Calculate fee using /fees/calculate/",
+      "4. Show fee preview to user",
+      "5. Confirm and send via /transfers/send/",
+      "6. Show success with transfer reference"
+    ],
+    "bill_payment_flow": [
+      "1. Select category",
+      "2. Enter provider and account details",
+      "3. Enter amount",
+      "4. Generate unique idempotency_key (UUID)",
+      "5. Submit payment",
+      "6. Show receipt with reference number"
+    ],
+    "form_validation_priorities": [
+      "1. Client-side validation (instant feedback)",
+      "2. Show validation errors inline",
+      "3. Disable submit button until form is valid",
+      "4. Handle server-side validation errors gracefully",
+      "5. Provide clear error messages"
+    ],
+    "ui_ux_recommendations": [
+      "1. Show balance prominently on dashboard",
+      "2. Recent transactions on home screen",
+      "3. Quick actions: Transfer, Pay Bill, Check Balance",
+      "4. Transaction history with filters",
+      "5. Fee preview before confirming transfers",
+      "6. Clear success/error notifications",
+      "7. Responsive design for mobile-first",
+      "8. Accessibility (ARIA labels, keyboard navigation)"
+    ]
+  }
+}
